@@ -1,0 +1,9 @@
+SQLAlchemy==2.0.31
+mysqlclient==2.2.4
+numpy==1.26.4
+google-generativeai==0.7.2
+streamlit==1.36.0
+pdfplumber==0.11.3
+pillow==10.4.0
+scikit-learn==1.5.1
+regex==2024.7.24
