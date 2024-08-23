@@ -2,15 +2,29 @@
 import streamlit as st
 from PIL import Image
 from functions import *
-import sqlalchemy
-
+from sqlalchemy import create_engine, text
 
 # conn = st.connection(
 #     "local_db",
 #     type="sql",
 #     url="mysql://root:@localhost:3306/extraction_nlp_recrutement"
 # )
-conn = st.connection("mydb", type="sql", autocommit=True)
+# conn = st.connection("mydb", type="sql", autocommit=True)
+engine = create_engine("mysql://root:@localhost:3306/extraction_nlp_recrutement")
+conn = engine.connect()
+
+if conn:
+    st.warning("Connection established!")
+
+    select_query = text("SELECT * FROM score")
+    result = conn.execute(select_query)
+
+    rows = result.fetchall()
+
+    for row in rows:
+        st.write(f"ID Offre: {row[1]}, ID Candidat: {row[2]}, Score: {row[3]}")
+else:
+    st.warning("Oops,connection not established")
 
 
 
@@ -66,24 +80,23 @@ if resumee and job_description:
             with tabs[1]:
                 st.write(keywords_job_desc)
 
-    # with st.expander("Score"):
-    #     with st.spinner("En cours..."):
-    #         score = rank_cvs_with_embeddings(keywords_resumee, keywords_job_desc)
-    #         st.write(f"Le score de compatibilité entre le CV et l'offre d'emploi est : {score}")
+    with st.expander("Score"):
+        with st.spinner("En cours..."):
+            score = rank_cvs_with_embeddings(keywords_resumee, keywords_job_desc)
+            st.write(f"Le score de compatibilité entre le CV et l'offre d'emploi est : {score}")
 
-    #     if conn:
-    #         st.warning("Connection established!")
-    #         query_candidat = f"""
-    #         INSERT INTO score (id_offre, id_candidat, score)
-    #         VALUES (
-    #             2,
-    #             2,
-    #             {score}
-    #         )
-    #         """
-    #         result=conn.query(query_candidat)
-    #         result.close()
-    #     else:
-    #         st.warning("Oops, connection not established")
+            try:
+                query_candidat = text("""
+                INSERT INTO score (id_offre, id_candidat, score)
+                VALUES (:id_offre, :id_candidat, :score)
+                """)
+                conn.execute(query_candidat, {"id_offre": 3, "id_candidat": 3, "score": score})
+                conn.commit()  # Si nécessaire, validez la transaction
+
+                st.success("Les données ont été insérées avec succès.")
+            except Exception as e:
+                st.error(f"Erreur lors de l'insertion : {e}")
+            finally:
+                conn.close()  # Assurez-vous de fermer la connexion
 
 
