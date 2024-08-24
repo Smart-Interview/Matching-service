@@ -53,7 +53,28 @@ if resumee and job_description:
 
             resumee_responses = {key: get_text_info_from_pdf(resumee, req) for key, req in requests_resumee.items()}
             resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation, le lieu, les compétences, expérience professionnelle mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
-            
+
+            if hasattr(resumee_responses["global"], "parts"):
+                parts = resumee_responses["global"].parts
+                #print(f"Parts Content: {parts}"
+                txt = parts[0].text
+                #print(f'txt: {txt}')
+                lines = txt.strip().split('\n')
+                attributes = {}
+
+                for line in lines:
+                    if ':' in line:
+                        key, value = line.split(':', 1)
+                        key = key.strip().strip('**')
+                        value = value.strip().strip('**').lstrip()
+
+                        attributes[key] = value
+
+                for key, value in attributes.items():
+                    print(f"{key}: {value}")
+
+
+ 
             job_description_responses = {key: get_text_info_from_pdf(job_description, req) for key, req in requests_job.items()}
             job_description_responses["global"] = get_text_info_from_pdf(job_description, "Veuillez extraire juste les mots clés du sexe, la formation, le lieu, les compétences, expérience professionnelle demandées dans cette offre d'emploi sans écrire le titre (informations...) sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace ne pas afficher de \n")
 
