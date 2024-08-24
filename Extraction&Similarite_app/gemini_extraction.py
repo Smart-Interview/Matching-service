@@ -10,21 +10,22 @@ from sqlalchemy import create_engine, text
 #     url="mysql://root:@localhost:3306/extraction_nlp_recrutement"
 # )
 # conn = st.connection("mydb", type="sql", autocommit=True)
-engine = create_engine("mysql://root:@localhost:3306/extraction_nlp_recrutement")
-conn = engine.connect()
 
-if conn:
-    st.warning("Connection established!")
+# engine = create_engine("mysql://root:@localhost:3306/extraction_nlp_recrutement")
+# conn = engine.connect()
 
-    select_query = text("SELECT * FROM score")
-    result = conn.execute(select_query)
+# if conn:
+#     st.warning("Connection established!")
 
-    rows = result.fetchall()
+#     select_query = text("SELECT * FROM score")
+#     result = conn.execute(select_query)
 
-    for row in rows:
-        st.write(f"ID Offre: {row[1]}, ID Candidat: {row[2]}, Score: {row[3]}")
-else:
-    st.warning("Oops,connection not established")
+#     rows = result.fetchall()
+
+#     for row in rows:
+#         st.write(f"ID Offre: {row[1]}, ID Candidat: {row[2]}, Score: {row[3]}")
+# else:
+#     st.warning("Oops,connection not established")
 
 
 
@@ -52,10 +53,10 @@ if resumee and job_description:
             }
 
             resumee_responses = {key: get_text_info_from_pdf(resumee, req) for key, req in requests_resumee.items()}
-            resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation, le lieu, les compétences, expérience professionnelle mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
+            resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation, le lieu (donne moi un seul lieu le plus récent), les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en mois ou en années) mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
             
             job_description_responses = {key: get_text_info_from_pdf(job_description, req) for key, req in requests_job.items()}
-            job_description_responses["global"] = get_text_info_from_pdf(job_description, "Veuillez extraire juste les mots clés du sexe, la formation, le lieu, les compétences, expérience professionnelle demandées dans cette offre d'emploi sans écrire le titre (informations...) sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace ne pas afficher de \n")
+            job_description_responses["global"] = get_text_info_from_pdf(job_description, "Veuillez extraire juste les mots clés du sexe, la formation, le lieu, les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en mois ou en années) demandées dans cette offre d'emploi sans écrire le titre (informations...) sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace ne pas afficher de \n")
 
             with col_a:
                 st.write("**Informations du CV**")
@@ -85,18 +86,18 @@ if resumee and job_description:
             score = rank_cvs_with_embeddings(keywords_resumee, keywords_job_desc)
             st.write(f"Le score de compatibilité entre le CV et l'offre d'emploi est : {score}")
 
-            try:
-                query_candidat = text("""
-                INSERT INTO score (id_offre, id_candidat, score)
-                VALUES (:id_offre, :id_candidat, :score)
-                """)
-                conn.execute(query_candidat, {"id_offre": 3, "id_candidat": 3, "score": score})
-                conn.commit()  # Si nécessaire, validez la transaction
+            # try:
+            #     query_candidat = text("""
+            #     INSERT INTO score (id_offre, id_candidat, score)
+            #     VALUES (:id_offre, :id_candidat, :score)
+            #     """)
+            #     conn.execute(query_candidat, {"id_offre": 3, "id_candidat": 3, "score": score})
+            #     conn.commit()  # Si nécessaire, validez la transaction
 
-                st.success("Les données ont été insérées avec succès.")
-            except Exception as e:
-                st.error(f"Erreur lors de l'insertion : {e}")
-            finally:
-                conn.close()  # Assurez-vous de fermer la connexion
+            #     st.success("Les données ont été insérées avec succès.")
+            # except Exception as e:
+            #     st.error(f"Erreur lors de l'insertion : {e}")
+            # finally:
+            #     conn.close()  # Assurez-vous de fermer la connexion
 
 
