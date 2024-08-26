@@ -53,7 +53,7 @@ if resumee and job_description:
             }
 
             resumee_responses = {key: get_text_info_from_pdf(resumee, req) for key, req in requests_resumee.items()}
-            resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation, le lieu (donne moi un seul lieu le plus récent), les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en mois ou en années) mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
+            resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation, le lieu (donne moi un seul lieu le plus récent), les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en années pour la partie expérience professionnelle) mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
             
             job_description_responses = {key: get_text_info_from_pdf(job_description, req) for key, req in requests_job.items()}
             job_description_responses["global"] = get_text_info_from_pdf(job_description, "Veuillez extraire juste les mots clés du sexe, la formation, le lieu, les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en mois ou en années) demandées dans cette offre d'emploi sans écrire le titre (informations...) sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace ne pas afficher de \n")
@@ -76,13 +76,21 @@ if resumee and job_description:
 
             for key in keywords_resumee:
                 keywords_resumee[key] = [item.replace('\\n', '').replace('\n', '') for item in keywords_resumee[key]]
+                keywords_resumee['experiences'] = [keywords_resumee['experiences'][0].replace('"}role: "model"', '').strip()]
 
             print(keywords_resumee)
 
+            for key in keywords_job_desc:
+                keywords_job_desc[key] = [item.replace('\\n', '').replace('\n', '') for item in keywords_job_desc[key]]
+                keywords_job_desc['experiences'] = [keywords_job_desc['experiences'][0].replace('"}role: "model"', '').strip()]
+
+            print(keywords_job_desc)
+
 
             with tabs[0]:
+
                 st.write(keywords_resumee)
-                # print(keywords_resumee)
+
 
             with tabs[1]:
                 st.write(keywords_job_desc)
