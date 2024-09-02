@@ -53,10 +53,10 @@ if resumee and job_description:
             }
 
             resumee_responses = {key: get_text_info_from_pdf(resumee, req) for key, req in requests_resumee.items()}
-            resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation, le lieu (donne moi un seul lieu le plus récent), les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en années pour la partie expérience professionnelle) mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
+            resumee_responses["global"] = get_text_info_from_pdf(resumee, "Veuillez extraire juste les mots clés du sexe (tu peux déduire le sexe), la formation (tous les formations mentionnées), le lieu (donne moi un seul lieu le plus récent), les compétences, expérience (donne moi juste le nombre d'expérience en années pour la partie expérience) mentionnées de ce CV sans écrire le titre (informations...) et sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace, ne pas afficher de \n") 
             
             job_description_responses = {key: get_text_info_from_pdf(job_description, req) for key, req in requests_job.items()}
-            job_description_responses["global"] = get_text_info_from_pdf(job_description, "Veuillez extraire juste les mots clés du sexe, la formation, le lieu, les compétences, expérience professionnelle (donne moi juste le nombre d'expérience en mois ou en années) demandées dans cette offre d'emploi sans écrire le titre (informations...) sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace ne pas afficher de \n")
+            job_description_responses["global"] = get_text_info_from_pdf(job_description, "Veuillez extraire juste les mots clés du sexe (si ce n'est pas affiché écrit rien), la formation (tous les formations mentionnées), le lieu, les compétences, expérience (donne moi juste le nombre d'expérience en mois ou en années) demandées dans cette offre d'emploi sans écrire le titre (informations...) sans mentionner d'informations supplémentaires, le résultat doit etre sous forme espace **nom:** espace ne pas afficher de \n")
 
             with col_a:
                 st.write("**Informations du CV**")
@@ -67,7 +67,7 @@ if resumee and job_description:
                 st.write("**Informations de l'offre d'emploi**")
                 st.write(job_description_responses["global"])
 
-    with st.expander("Extraction des mots-clés"):
+    with st.expander("Extraction des mots-clés"): 
         with st.spinner("En cours..."):
             tabs = st.tabs(["CVs", "Offre d'emploi"])
 
@@ -82,7 +82,11 @@ if resumee and job_description:
 
             for key in keywords_job_desc:
                 keywords_job_desc[key] = [item.replace('\\n', '').replace('\n', '') for item in keywords_job_desc[key]]
-                keywords_job_desc['experiences'] = [keywords_job_desc['experiences'][0].replace('"}role: "model"', '').strip()]
+                if keywords_job_desc['experiences'] and len(keywords_job_desc['experiences']) > 0:
+                    keywords_job_desc['experiences'] = [keywords_job_desc['experiences'][0].replace('"}role: "model"', '').strip()]
+                else:
+                    st.error("Aucune expérience extraite de l'offre d'emploi.")
+
 
             print(keywords_job_desc)
 
@@ -91,14 +95,14 @@ if resumee and job_description:
 
                 st.write(keywords_resumee)
 
-
             with tabs[1]:
                 st.write(keywords_job_desc)
 
     with st.expander("Score"):
         with st.spinner("En cours..."):
-            score = rank_cvs_with_embeddings(keywords_resumee, keywords_job_desc)
+            score = similarity(keywords_resumee, keywords_job_desc)
             st.write(f"Le score de compatibilité entre le CV et l'offre d'emploi est : {score}")
+
 
             # try:
             #     query_candidat = text("""
