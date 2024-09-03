@@ -14,6 +14,8 @@ import re
 import spacy
 from dotenv import load_dotenv
 import os
+import mysql.connector
+from mysql.connector import Error
 
 app = Flask(__name__)
 
@@ -277,14 +279,48 @@ def score(filenameCV, filenameOffre):
         if cosine_sim_sexe == 0:
             cosine_sim = 0
 
-        if cosine_sim >= 0.5:
-            return "accepté"
-        else:
-            return "refusé"
+        status = "accepté" if cosine_sim >= 0.5 else "refusé"
+        
+        return insert_status(status)
 
     except Exception as e:
         print(f"Une erreur s'est produite : {e}")
         return "échoué"
+
+def create_connection():
+    connection = None
+    try:
+        connection = mysql.connector.connect(
+            host='localhost',
+            user='username',
+            password='password',
+            database='database_name'
+        )
+        if connection.is_connected():
+            print("Connected to MySQL database")
+    except Error as e:
+        print(f"Error: '{e}'")
+
+    return connection
+
+def insert_status(status):
+    connection = create_connection()
+
+    if connection is None:
+        return "error connecting to the database"
+    
+    cursor = connection.cursor()
+    query = "INSERT INTO results (status) VALUES (%s)"          #results is the table name with status as varchar
+    cursor.execute(query, (status,))
+    connection.commit()
+
+    print(f"Status '{status}' inserted with ID: {cursor.lastrowid}")
+
+    cursor.close()
+    connection.close()
+
+    return "inserted successfully"
+
 
 
 def lemmatize_text(text):
