@@ -1,0 +1,31 @@
+version: '3.8'
+
+services:
+  web:
+    image: anassbe/flask_app_web:latest
+    ports:
+      - "5000:5000"
+    environment:
+      - GENAI_API_KEY=AIzaSyBOntkalUbDDmfDX1KFObU3HFvbc_ca35Q
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=anass
+      - DB_NAME=job_matching
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: anass
+      MYSQL_DATABASE: job_matching
+    ports:
+      - "3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql 
+
+volumes:
+  db-data:

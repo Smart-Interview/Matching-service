@@ -1,0 +1,6 @@
+CREATE TABLE IF NOT EXISTS results (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    score FLOAT NOT NULL,
+    status VARCHAR(255) NOT NULL,
+    application_id INT NOT NULL
+);

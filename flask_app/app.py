@@ -2,9 +2,7 @@ from flask import Flask, request, jsonify, send_from_directory
 import os
 import pdfplumber
 import google.generativeai as genai
-from transformers import BertTokenizer, BertModel
 from sklearn.metrics.pairwise import cosine_similarity
-import torch
 import re
 import nltk
 from nltk.stem import WordNetLemmatizer
@@ -20,9 +18,6 @@ from mysql.connector import Error
 app = Flask(__name__)
 
 
-#$ curl -X POST -F "file=@static\data-scientist-f-h.pdf" http://127.0.0.1:5000/upload-offre
-#$ curl -X POST -F "file=@static\Bouchra-Benghazala-CV-Recent.pdf" http://127.0.0.1:5000/upload-cv
-
 load_dotenv()  # Load environment variables from .env file
 
 api_key = os.getenv("GENAI_API_KEY")
@@ -33,8 +28,6 @@ else:
 
 vision_model = genai.GenerativeModel('gemini-1.5-flash')
 
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
 
 
 
@@ -61,55 +54,7 @@ years_suffix=["an","année","ans","années"]
 
 
 
-# Route pour recevoir le fichier du CV 
-@app.route('/upload-cv', methods=['POST'])
-def upload_cv():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    # Créer le dossier s'il n'existe pas
-    upload_folder = './uploads/cv/'
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-    
-    # Sauvegarder le fichier CV
-    file.save(os.path.join(upload_folder, file.filename))
-    return jsonify({"message": f"CV uploaded successfully as {file.filename}"}), 200
 
-
-
-# Route pour recevoir le fichier de l'offre d'emploi
-@app.route('/upload-offre', methods=['POST'])
-def upload_offre():
-    if 'file' not in request.files:
-        return jsonify({"error": "No file part"}), 400
-    
-    file = request.files['file']
-    
-    if file.filename == '':
-        return jsonify({"error": "No selected file"}), 400
-    
-    # Créer le dossier s'il n'existe pas
-    upload_folder = './uploads/offres/'
-    if not os.path.exists(upload_folder):
-        os.makedirs(upload_folder)
-    
-    # Sauvegarder le fichier offre d'emploi
-    file.save(os.path.join(upload_folder, file.filename))
-    return jsonify({"message": f"Offre uploaded successfully as {file.filename}"}), 200
-
-# Route pour accéder aux fichiers CV
-@app.route('/files/cv/<filename>')
-def serve_cv(filename):
-    return send_from_directory('./uploads/cv/', filename)
-
-
-@app.route('/extractInfoCV/cv/<filename>')
 def extractInfoCV(filename):
     file_path = os.path.join('./uploads/cv/', filename)
     text = ""
@@ -165,7 +110,7 @@ def parse_global_info(global_info):
     
     return keywords
 
-@app.route('/extractKeyWordsCV/cv/<filename>')
+
 def extractKeyWordsCV(filename):
     keywords_resumee = parse_global_info(extractInfoCV(filename))
     for key in keywords_resumee:
@@ -175,14 +120,9 @@ def extractKeyWordsCV(filename):
     return keywords_resumee
 
 
-# Route pour accéder aux fichiers offres
-@app.route('/files/offre/<filename>')
-def serve_offre(filename):
-    return send_from_directory('./uploads/offres/', filename)
 
-@app.route('/extractInfo_Offre/offre/<filename>')
 def extractInfo_Offre(filename):
-    file_path = os.path.join('./uploads/offres/', filename)
+    file_path = os.path.join('./uploads/offer/', filename)
     text = ""
     with pdfplumber.open(file_path) as pdf:
         for page in pdf.pages:
@@ -207,7 +147,7 @@ def extractInfo_Offre(filename):
     else:
         return "Aucun résultat disponible pour cette requête."
     
-@app.route('/extractKeyWordsOffre/offre/<filename>')
+
 def extractKeyWordsOffre(filename):
     keywords_resumee = parse_global_info(extractInfo_Offre(filename))
     for key in keywords_resumee:
@@ -217,9 +157,65 @@ def extractKeyWordsOffre(filename):
     return keywords_resumee
 
 
-@app.route('/score/<filenameCV>/<filenameOffre>')
+
+
+@app.route('/analyze_data', methods=['POST'])
+def recieve_data():
+
+    if 'cv' not in request.files or 'offerId' not in request.files:
+        return jsonify({"error": "No file part in the request"}), 400
+
+    if 'applicationId' not in request.form:
+        return jsonify({"error": "app_id is missing"}), 400
+
+    
+    cv_file = request.files['cv']
+    offre_file = request.files['offerId']
+
+    try:
+        app_id = int(request.form['applicationId'])
+    except ValueError:
+        return jsonify({"error": "app_id must be an integer"}), 400
+
+    
+    if cv_file.filename == '' or offre_file.filename == '':
+        return jsonify({"error": "No file selected"}), 400
+
+    
+    cv_folder = './uploads/cv'
+    offer_folder = './uploads/offer'
+    if not os.path.exists(cv_folder):
+        os.makedirs(cv_folder)
+    
+    if not os.path.exists(offer_folder):
+        os.mkdir(offer_folder)
+
+
+    cv_file_path = os.path.join(cv_folder, cv_file.filename)
+    offre_file_path = os.path.join(offer_folder, offre_file.filename)
+
+    cv_file.save(cv_file_path)
+    offre_file.save(offre_file_path)
+
+ 
+   
+    results, status = score(cv_file.filename, offre_file.filename)
+
+    insert_response = insert(results, status, app_id)
+
+    return jsonify({
+
+        "status": status,
+        "applicationId": app_id 
+        
+    }), 200
+
+
+
+
 def score(filenameCV, filenameOffre):
     try:
+        
         CV = extractKeyWordsCV(filenameCV)
         Offre = extractKeyWordsOffre(filenameOffre)
 
@@ -279,22 +275,25 @@ def score(filenameCV, filenameOffre):
         if cosine_sim_sexe == 0:
             cosine_sim = 0
 
-        status = "accepté" if cosine_sim >= 0.5 else "refusé"
-        
-        return insert_status(status)
+
+        status = "ACCEPTED" if cosine_sim >= 0.5 else "REFUSED"    
+
+        score = round(float(cosine_sim), 2)
+
+        return score, status
 
     except Exception as e:
         print(f"Une erreur s'est produite : {e}")
-        return "échoué"
+        return "FAILED"
 
 def create_connection():
     connection = None
     try:
         connection = mysql.connector.connect(
-            host='localhost',
-            user='username',
-            password='password',
-            database='database_name'
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASSWORD'),
+            database=os.getenv('DB_NAME')
         )
         if connection.is_connected():
             print("Connected to MySQL database")
@@ -303,22 +302,23 @@ def create_connection():
 
     return connection
 
-def insert_status(status):
-    connection = create_connection()
+def insert(score, status, application_id):
 
+    if score is None or status is None or application_id is None:
+        return "error: all arguments must be provided"
+    
+    connection = create_connection()
+    
     if connection is None:
         return "error connecting to the database"
     
     cursor = connection.cursor()
-    query = "INSERT INTO results (status) VALUES (%s)"          #results is the table name with status as varchar
-    cursor.execute(query, (status,))
+    query = "INSERT INTO results (score, status, application_id) VALUES (%s, %s, %s)"         #results is the table name with status as varchar
+    cursor.execute(query, (score, status, application_id))
     connection.commit()
-
-    print(f"Status '{status}' inserted with ID: {cursor.lastrowid}")
 
     cursor.close()
     connection.close()
-
     return "inserted successfully"
 
 
