@@ -1,5 +1,0 @@
-Le CV and Job Offer Analyzer est une application web basée sur Flask qui automatise l'analyse et la correspondance entre des CVs (curriculums vitae) et des offres d'emploi. Elle utilise des techniques de traitement du langage naturel (NLP) et l'API Generative AI de Google pour extraire les informations clés des fichiers PDF de CV et d'offres d'emploi, telles que les compétences, l'expérience, l'éducation, et plus encore. L'application calcule ensuite une similarité entre le CV et l'offre d'emploi afin de déterminer l'adéquation du candidat à une offre spécifique. Les résultats sont enregistrés dans une base de données MySQL, et l'utilisateur reçoit un retour sous forme de score et de statut d'acceptation ou de refus.
-
-Les principales fonctionnalités incluent l'extraction de texte de fichiers PDF, la génération de mots-clés, le calcul de similarité basé sur des critères spécifiques, ainsi que l'intégration avec une base de données pour le stockage des résultats.
-
-Pour utiliser le projet veuillez installer les bibliothèques présentes dans le fichier requirement.txt
