@@ -1,0 +1,119 @@
+version: '3.8'
+services:
+  offerdb:
+    image: postgres:latest
+    container_name: offer_db
+    environment:
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_USER=postgres
+      - POSTGRES_DB=offerDB
+    ports:
+      - '5431:5432'
+
+  discovery-server:
+    image: ilyaselmabrouki/discovery-server:v1
+    container_name: discovery-server
+    ports:
+      - "8761:8761"
+    expose:
+      - '8761'
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8761/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      - offerdb
+
+  config-server:
+    image: ilyaselmabrouki/config-server:v1
+    container_name: config-server
+    ports:
+      - "9999:9999"
+    expose:
+      - '9999'
+    environment:
+      - DISCOVERY_SERVICE_URL=http://discovery-server:8761/eureka/
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9999/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      discovery-server:
+        condition: service_healthy
+
+  offer-service:
+    image: ilyaselmabrouki/offer-service:v1
+    container_name: offer-service
+    ports:
+      - "8040:8040"
+    environment:
+      - DISCOVERY_SERVICE_URL=http://discovery-server:8761/eureka/
+      - CONFIG_SERVICE_URL=http://config-server:9999
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:8040/actuator/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 40s
+    depends_on:
+      config-server:
+        condition: service_healthy
+
+#  candidatedb:
+#    image: postgres:latest
+#    container_name: candidate_db
+#    environment:
+#      - POSTGRES_PASSWORD=ilyas
+#      - POSTGRES_USER=postgres
+#      - POSTGRES_DB=candidateDB
+#    ports:
+#      - '5432:5432'
+#    depends_on:
+#      offer-service:
+#        condition: service_healthy
+#
+#  candidate-service:
+#    image: ilyaselmabrouki/candidate-service:v1
+#    container_name: candidate-service
+#    ports:
+#      - "8070:8070"
+#    environment:
+#      - DISCOVERY_SERVICE_URL=http://discovery-server:8761/eureka/
+#      - CONFIG_SERVICE_URL=http://config-server:9999
+#    healthcheck:
+#      test: [ "CMD", "curl", "-f", "http://localhost:8070/actuator/health" ]
+#      interval: 10s
+#      retries: 4
+#    depends_on:
+#      - candidatedb
+#
+
+  web:
+    image: anassbe/matching-service
+    ports:
+      - "5000:5000"
+    environment:
+      - GENAI_API_KEY=AIzaSyBOntkalUbDDmfDX1KFObU3HFvbc_ca35Q
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASSWORD=anass
+      - DB_NAME=job_matching
+    depends_on:
+      - db
+
+  db:
+    image: anassbe/db_matching-service # This is your custom image with the init.sql baked in
+    environment:
+      MYSQL_ROOT_PASSWORD: anass
+      MYSQL_DATABASE: job_matching
+    ports:
+      - "3307:3306"
+    volumes:
+      - db-data:/var/lib/mysql  # No need to mount init.sql anymore
+
+volumes:
+  db-data:
