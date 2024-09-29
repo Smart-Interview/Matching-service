@@ -1,5 +1,0 @@
-__pycache__/
-.vscode
-bert-base-uncased/
-*.bin
-*.tar
